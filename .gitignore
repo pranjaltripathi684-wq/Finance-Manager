@@ -1,1 +1,23 @@
-.aider*
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# SQLite Database (don't commit local transaction data)
+*.db
+*.sqlite3
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv/
+
+# IDE / Editor configuration
+.vscode/
+.idea/
+*.swp
+
+# Operating System files
+.DS_Store
+Thumbs.db
