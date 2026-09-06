@@ -1,0 +1,46 @@
+<!-- Extend 'base.html' -->
+<!-- Inside {% block content %}:
+     Create a <form method="POST" action="/add">
+     - Text input for title
+     - Number input (step="0.01", min="0.01") for amount
+     - Select dropdown for type: "expense", "income"
+     - Select dropdown or text input for category (e.g., Food, Salary, Rent, Shopping)
+     - Date input (type="date") for date
+     - Textarea or input for notes (optional)
+     - Submit button
+-->
+     
+{% extends 'base.html' %}
+
+{% block content %}
+    <form method="POST" action="/add">
+        <div>
+            <label for="title">Title:</label>
+            <input type="text" id="title" name="title" required>
+        </div>
+        <div>
+            <label for="amount">Amount:</label>
+            <input type="number" id="amount" name="amount" step="0.01" min="0.01" required>
+        </div>
+        <div>
+            <label for="type">Type:</label>
+            <select id="type" name="type" required>
+                <option value="expense">Expense</option>
+                <option value="income">Income</option>
+            </select>
+        </div>
+        <div>
+            <label for="category">Category:</label>
+            <input type="text" id="category" name="category" required>
+        </div>
+        <div>
+            <label for="date">Date:</label>
+            <input type="date" id="date" name="date" required>
+        </div>
+        <div>
+            <label for="notes">Notes:</label>
+            <textarea id="notes" name="notes"></textarea>
+        </div>
+        <button type="submit">Add Transaction</button>
+    </form>
+{% endblock %}

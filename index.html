@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Finance Tracker{% endblock %}
+
+{% block content %}
+<section class="summary">
+    <div class="card income">
+        <h3>Total Income</h3>
+        <p>{{ "%.2f"|format(total_income) }}</p>
+    </div>
+    <div class="card expense">
+        <h3>Total Expenses</h3>
+        <p>{{ "%.2f"|format(total_expense) }}</p>
+    </div>
+    <div class="card balance">
+        <h3>Net Balance</h3>
+        <p>{{ "%.2f"|format(balance) }}</p>
+    </div>
+</section>
+
+<section class="transactions">
+    <h2>Recent Transactions</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Notes</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in transactions %}
+            <tr>
+                <td>{{ t['date'] }}</td>
+                <td>{{ t['title'] }}</td>
+                <td>{{ t['category'] }}</td>
+                <td>{{ t['type'] }}</td>
+                <td>{{ "%.2f"|format(t['amount']) }}</td>
+                <td>{{ t['notes'] }}</td>
+                <td>
+                    <a href="{{ url_for('edit_transaction', id=t['id']) }}">Edit</a>
+                    <form method="POST" action="{{ url_for('delete_transaction', id=t['id']) }}"
+                        style="display:inline;">
+                        <button type="submit" onclick="return confirm('Are you sure?');">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7">No transactions found. Add one to get started!</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+{% if chart_labels %}
+<section class="chart-section">
+    <h2>Expenses by Category</h2>
+    <div class="chart-container">
+        <canvas id="expenseChart"></canvas>
+    </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if chart_labels %}
+<script>
+    const ctx = document.getElementById('expenseChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ chart_labels | tojson }},
+        datasets: [{
+            data: {{ chart_data | tojson }},
+        borderWidth: 1
+            }]
+        },
+        options: {
+        responsive: true
+    }
+    });
+</script>
+{% endif %}
+{% endblock %}
