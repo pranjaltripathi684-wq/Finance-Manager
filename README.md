@@ -43,3 +43,49 @@ Finance-Manager/
     ├── index.html          # Dashboard view with summary cards, table, and charts
     ├── add_transaction.html # Transaction creation form
     └── edit_transaction.html# Pre-filled transaction editing form
+
+🚀 Getting Started
+Follow these steps to run the application locally on your machine:
+
+1. Prerequisites
+Ensure you have Python 3.9+ installed on your computer.
+
+2. Clone the Repository
+bash
+
+
+git clone https://github.com/YOUR_USERNAME/Finance-Manager.git
+cd Finance-Manager
+3. (Optional) Create a Virtual Environment
+bash
+
+
+# Windows
+python -m venv venv
+venv\Scripts\activate
+# macOS/Linux
+python3 -m venv venv
+source venv/bin/activate
+4. Install Dependencies
+bash
+
+
+pip install -r requirements.txt
+5. Initialize the Database
+Run the setup script to create the local SQLite database and table schema:
+
+bash
+
+
+python db.py
+6. Run the Application
+bash
+
+
+python app.py
+Open your browser and navigate to:
+
+text
+
+
+http://127.0.0.1:5000
