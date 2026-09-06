@@ -6,23 +6,22 @@
 <section class="summary">
     <div class="card income">
         <h3>Total Income</h3>
-        <p>{{ "%.2f"|format(total_income) }}</p>
+        <p style="color: #16a34a;">+${{ "%.2f"|format(total_income) }}</p>
     </div>
-
     <div class="card expense">
         <h3>Total Expenses</h3>
-        <p>{{ "%.2f"|format(total_expense) }}</p>
+        <p style="color: #dc2626;">-${{ "%.2f"|format(total_expense) }}</p>
     </div>
-
     <div class="card balance">
         <h3>Net Balance</h3>
-        <p>{{ "%.2f"|format(balance) }}</p>
+        <p style="color: {% if balance >= 0 %}#16a34a{% else %}#dc2626{% endif %};">
+            ${{ "%.2f"|format(balance) }}
+        </p>
     </div>
 </section>
 
 <section class="transactions">
     <h2>Recent Transactions</h2>
-
     <table>
         <thead>
             <tr>
@@ -35,41 +34,28 @@
                 <th>Actions</th>
             </tr>
         </thead>
-
         <tbody>
             {% for t in transactions %}
             <tr>
                 <td>{{ t['date'] }}</td>
-                <td>{{ t['title'] }}</td>
+                <td><strong>{{ t['title'] }}</strong></td>
                 <td>{{ t['category'] }}</td>
-                <td>{{ t['type'] }}</td>
-                <td>{{ "%.2f"|format(t['amount']) }}</td>
-                <td>{{ t['notes'] }}</td>
-
+                <td>{{ t['type']|capitalize }}</td>
+                <td style="font-weight: bold; color: {% if t['type'] == 'income' %}#16a34a{% else %}#dc2626{% endif %};">
+                    {% if t['type'] == 'income' %}+{% else %}-{% endif %}${{ "%.2f"|format(t['amount']) }}
+                </td>
+                <td>{{ t['notes'] if t['notes'] else '-' }}</td>
                 <td>
-                    <a href="{{ url_for('edit_transaction', id=t['id']) }}">
-                        Edit
-                    </a>
-
-                    <form
-                        method="POST"
-                        action="{{ url_for('delete_transaction', id=t['id']) }}"
-                        style="display:inline;"
-                    >
-                        <button
-                            type="submit"
-                            onclick="return confirm('Are you sure?');"
-                        >
-                            Delete
-                        </button>
+                    <a href="{{ url_for('edit_transaction', id=t['id']) }}">Edit</a>
+                    <form method="POST" action="{{ url_for('delete_transaction', id=t['id']) }}" style="display:inline;">
+                        <button type="submit" onclick="return confirm('Are you sure you want to delete this transaction?');">Delete</button>
                     </form>
                 </td>
             </tr>
-
             {% else %}
             <tr>
-                <td colspan="7">
-                    No transactions found. Add one to get started!
+                <td colspan="7" style="text-align: center; padding: 20px;">
+                    No transactions found. <a href="{{ url_for('add_transaction') }}">Add one to get started!</a>
                 </td>
             </tr>
             {% endfor %}
@@ -78,47 +64,44 @@
 </section>
 
 {% if chart_labels %}
-<section class="chart-section">
+<section class="chart-section" style="max-width: 450px; margin: 30px auto; text-align: center;">
     <h2>Expenses by Category</h2>
-
-    <div class="chart-container">
+    <div class="chart-container" style="position: relative; height: 320px; width: 100%;">
         <canvas id="expenseChart"></canvas>
     </div>
 </section>
 {% endif %}
-
 {% endblock %}
 
 {% block scripts %}
-
 {% if chart_labels %}
-<script id="expense-chart-data" type="application/json">
-{{ {'labels': chart_labels, 'data': chart_data} | tojson }}
-</script>
-
 <script>
-    const chartElement = document.getElementById('expenseChart');
-    const chartData = JSON.parse(
-        document.getElementById('expense-chart-data').textContent
-    );
-
-    new Chart(chartElement.getContext('2d'), {
+    const ctx = document.getElementById('expenseChart').getContext('2d');
+    new Chart(ctx, {
         type: 'doughnut',
-
         data: {
-            labels: chartData.labels,
-
+            labels: {{ chart_labels | tojson }},
             datasets: [{
-                data: chartData.data,
-                borderWidth: 1
+                data: {{ chart_data | tojson }},
+                backgroundColor: [
+                    '#36A2EB', '#FF6384', '#FFCE56', 
+                    '#4BC0C0', '#9966FF', '#FF9F40',
+                    '#20c997', '#e83e8c', '#6c757d'
+                ],
+                borderWidth: 2,
+                borderColor: '#ffffff'
             }]
         },
-
         options: {
-            responsive: true
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
         }
     });
 </script>
 {% endif %}
-
 {% endblock %}
