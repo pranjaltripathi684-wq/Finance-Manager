@@ -236,14 +236,6 @@
             text-decoration: underline;
         }
 
-        .chart-section {
-            background: #ffffff;
-            padding: 24px;
-            border-radius: 10px;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-
         .form-container {
             background: #ffffff;
             padding: 28px;
@@ -311,7 +303,8 @@
                 </button>
             </li>
             <li><a href="{{ url_for('index') }}">Dashboard</a></li>
-            <!-- NEW: Budgets Page Link -->
+            <!-- NEW: Dedicated Analytics Tab -->
+            <li><a href="{{ url_for('analytics') }}">📈 Analytics</a></li>
             <li><a href="{{ url_for('manage_budgets') }}">🎯 Budgets</a></li>
             <li><a href="{{ url_for('add_transaction') }}">+ Add Transaction</a></li>
         </ul>
