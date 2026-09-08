@@ -5,15 +5,14 @@
 {% block content %}
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
     <h2>📊 Financial Trends & Analytics</h2>
-    <a href="{{ url_for('index') }}" style="color: #2563eb; text-decoration: none; font-weight: 600;">← Back to Dashboard</a>
+    <a href="{{ url_for('index') }}" style="color: var(--primary); text-decoration: none; font-weight: 600;">← Back to Dashboard</a>
 </div>
 
-<!-- Grid of Visual Charts -->
 <div style="display: grid; grid-template-columns: 1fr; gap: 30px;">
     <!-- 1. Monthly Expense Trend Line Chart -->
-    <div style="background: #ffffff; padding: 24px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-        <h3 style="font-size: 1.1rem; margin-bottom: 6px; color: #1e293b;">📈 Monthly Expense Trajectory</h3>
-        <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 16px;">Track whether your total monthly spending is climbing or decreasing over time.</p>
+    <div style="background: var(--bg-card); padding: 24px; border-radius: 10px; border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <h3 style="font-size: 1.1rem; margin-bottom: 6px; color: var(--text-primary);">📈 Monthly Expense Trajectory</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">Track whether your total monthly spending is climbing or decreasing over time.</p>
         
         <div style="position: relative; height: 320px; width: 100%;">
             <canvas id="trendLineChart"></canvas>
@@ -21,19 +20,19 @@
     </div>
 
     <!-- 2. Cash Flow: Income vs. Expenses Bar Chart -->
-    <div style="background: #ffffff; padding: 24px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-        <h3 style="font-size: 1.1rem; margin-bottom: 6px; color: #1e293b;">📊 Monthly Cash Flow (Income vs. Expenses)</h3>
-        <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 16px;">Compare monthly earnings against spending to verify positive cash flow.</p>
+    <div style="background: var(--bg-card); padding: 24px; border-radius: 10px; border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <h3 style="font-size: 1.1rem; margin-bottom: 6px; color: var(--text-primary);">📊 Monthly Cash Flow (Income vs. Expenses)</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">Compare monthly earnings against spending to verify positive cash flow.</p>
         
         <div style="position: relative; height: 320px; width: 100%;">
             <canvas id="cashFlowChart"></canvas>
         </div>
     </div>
 
-    <!-- 3. Category Spending Breakdown (Horizontal Ranked Bar Chart) -->
-    <div style="background: #ffffff; padding: 24px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-        <h3 style="font-size: 1.1rem; margin-bottom: 6px; color: #1e293b;">📉 Category Spending Ranking</h3>
-        <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 16px;">Ranked from your largest expense area to your smallest.</p>
+    <!-- 3. Category Spending Breakdown -->
+    <div style="background: var(--bg-card); padding: 24px; border-radius: 10px; border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <h3 style="font-size: 1.1rem; margin-bottom: 6px; color: var(--text-primary);">📉 Category Spending Ranking</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">Ranked from your largest expense area to your smallest.</p>
         
         <div style="position: relative; height: 300px; width: 100%;">
             <canvas id="categoryRankChart"></canvas>
@@ -50,21 +49,29 @@
     const catLabels = {{ cat_labels | tojson }};
     const catTotals = {{ cat_totals | tojson }};
 
-    // 1. Line Chart: Monthly Expense Trend
+    function getGridColor() {
+        return document.body.classList.contains('dark-mode') ? '#273553' : '#e2e8f0';
+    }
+
+    function getTextColor() {
+        return document.body.classList.contains('dark-mode') ? '#94a3b8' : '#64748b';
+    }
+
+    // 1. Line Chart
     const ctxTrend = document.getElementById('trendLineChart').getContext('2d');
-    new Chart(ctxTrend, {
+    const trendChart = new Chart(ctxTrend, {
         type: 'line',
         data: {
             labels: trendMonths,
             datasets: [{
                 label: 'Monthly Expense ($)',
                 data: trendExpenses,
-                borderColor: '#dc2626',
-                backgroundColor: 'rgba(220, 38, 38, 0.08)',
+                borderColor: '#ef4444',
+                backgroundColor: 'rgba(239, 68, 68, 0.12)',
                 borderWidth: 3,
-                tension: 0.35, // Smooth Bezier curve
+                tension: 0.35,
                 fill: true,
-                pointBackgroundColor: '#dc2626',
+                pointBackgroundColor: '#ef4444',
                 pointRadius: 5
             }]
         },
@@ -72,71 +79,87 @@
             responsive: true,
             maintainAspectRatio: false,
             scales: {
+                x: { ticks: { color: getTextColor() }, grid: { color: getGridColor() } },
                 y: {
                     beginAtZero: true,
-                    ticks: { callback: val => '$' + val }
+                    ticks: { color: getTextColor(), callback: val => '$' + val },
+                    grid: { color: getGridColor() }
                 }
             }
         }
     });
 
-    // 2. Bar Chart: Income vs Expense Cash Flow
+    // 2. Bar Chart
     const ctxCashFlow = document.getElementById('cashFlowChart').getContext('2d');
-    new Chart(ctxCashFlow, {
+    const cashFlowChart = new Chart(ctxCashFlow, {
         type: 'bar',
         data: {
             labels: trendMonths,
             datasets: [
-                {
-                    label: 'Income ($)',
-                    data: trendIncomes,
-                    backgroundColor: '#16a34a',
-                    borderRadius: 5
-                },
-                {
-                    label: 'Expense ($)',
-                    data: trendExpenses,
-                    backgroundColor: '#dc2626',
-                    borderRadius: 5
-                }
+                { label: 'Income ($)', data: trendIncomes, backgroundColor: '#22c55e', borderRadius: 5 },
+                { label: 'Expense ($)', data: trendExpenses, backgroundColor: '#ef4444', borderRadius: 5 }
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
+                x: { ticks: { color: getTextColor() }, grid: { color: getGridColor() } },
                 y: {
                     beginAtZero: true,
-                    ticks: { callback: val => '$' + val }
+                    ticks: { color: getTextColor(), callback: val => '$' + val },
+                    grid: { color: getGridColor() }
                 }
             }
         }
     });
 
-    // 3. Horizontal Bar Chart: Category Ranking
+    // 3. Category Horizontal Bar Chart
     const ctxCategory = document.getElementById('categoryRankChart').getContext('2d');
-    new Chart(ctxCategory, {
+    const categoryChart = new Chart(ctxCategory, {
         type: 'bar',
         data: {
             labels: catLabels,
             datasets: [{
                 label: 'Total Spent ($)',
                 data: catTotals,
-                backgroundColor: '#2563eb',
+                backgroundColor: '#3b82f6',
                 borderRadius: 5
             }]
         },
         options: {
-            indexAxis: 'y', // Horizontal bars!
+            indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
             scales: {
                 x: {
                     beginAtZero: true,
-                    ticks: { callback: val => '$' + val }
-                }
+                    ticks: { color: getTextColor(), callback: val => '$' + val },
+                    grid: { color: getGridColor() }
+                },
+                y: { ticks: { color: getTextColor() }, grid: { color: getGridColor() } }
             }
         }
+    });
+
+    // Re-render chart text colors dynamically when theme is switched
+    window.addEventListener('themeChanged', () => {
+        const gridColor = getGridColor();
+        const textColor = getTextColor();
+
+        [trendChart, cashFlowChart, categoryChart].forEach(chart => {
+            if (chart) {
+                if (chart.options.scales.x) {
+                    chart.options.scales.x.ticks.color = textColor;
+                    chart.options.scales.x.grid.color = gridColor;
+                }
+                if (chart.options.scales.y) {
+                    chart.options.scales.y.ticks.color = textColor;
+                    chart.options.scales.y.grid.color = gridColor;
+                }
+                chart.update();
+            }
+        });
     });
 </script>
 {% endblock %}

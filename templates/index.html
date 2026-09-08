@@ -7,16 +7,16 @@
     <!-- Income Card -->
     <div class="card income">
         <h3>Total Income</h3>
-        <p class="money-value" style="color: #16a34a;">+${{ "%.2f"|format(total_income) }}</p>
+        <p class="money-value" style="color: var(--income);">+${{ "%.2f"|format(total_income) }}</p>
         <div style="font-size: 0.8rem; margin-top: 6px;">
             {% if comparison.income_change is not none %}
                 {% if comparison.income_change >= 0 %}
-                    <span style="color: #16a34a; font-weight: 600;">+{{ comparison.income_change }}%</span> vs {{ comparison.prev_month_name }}
+                    <span style="color: var(--income); font-weight: 600;">+{{ comparison.income_change }}%</span> vs {{ comparison.prev_month_name }}
                 {% else %}
-                    <span style="color: #dc2626; font-weight: 600;">{{ comparison.income_change }}%</span> vs {{ comparison.prev_month_name }}
+                    <span style="color: var(--expense); font-weight: 600;">{{ comparison.income_change }}%</span> vs {{ comparison.prev_month_name }}
                 {% endif %}
             {% else %}
-                <span style="color: #64748b;">No data from {{ comparison.prev_month_name }}</span>
+                <span style="color: var(--text-muted);">No data from {{ comparison.prev_month_name }}</span>
             {% endif %}
         </div>
     </div>
@@ -24,16 +24,16 @@
     <!-- Expense Card -->
     <div class="card expense">
         <h3>Total Expenses</h3>
-        <p class="money-value" style="color: #dc2626;">-${{ "%.2f"|format(total_expense) }}</p>
+        <p class="money-value" style="color: var(--expense);">-${{ "%.2f"|format(total_expense) }}</p>
         <div style="font-size: 0.8rem; margin-top: 6px;">
             {% if comparison.expense_change is not none %}
                 {% if comparison.expense_change <= 0 %}
-                    <span style="color: #16a34a; font-weight: 600;">{{ comparison.expense_change }}%</span> vs {{ comparison.prev_month_name }}
+                    <span style="color: var(--income); font-weight: 600;">{{ comparison.expense_change }}%</span> vs {{ comparison.prev_month_name }}
                 {% else %}
-                    <span style="color: #dc2626; font-weight: 600;">+{{ comparison.expense_change }}%</span> vs {{ comparison.prev_month_name }}
+                    <span style="color: var(--expense); font-weight: 600;">+{{ comparison.expense_change }}%</span> vs {{ comparison.prev_month_name }}
                 {% endif %}
             {% else %}
-                <span style="color: #64748b;">No data from {{ comparison.prev_month_name }}</span>
+                <span style="color: var(--text-muted);">No data from {{ comparison.prev_month_name }}</span>
             {% endif %}
         </div>
     </div>
@@ -41,10 +41,10 @@
     <!-- Balance Card -->
     <div class="card balance">
         <h3>Net Balance</h3>
-        <p class="money-value" style="color: {% if balance >= 0 %}#16a34a{% else %}#dc2626{% endif %};">
+        <p class="money-value" style="color: {% if balance >= 0 %}var(--income){% else %}var(--expense){% endif %};">
             ${{ "%.2f"|format(balance) }}
         </p>
-        <div style="font-size: 0.8rem; margin-top: 6px; color: #64748b;">
+        <div style="font-size: 0.8rem; margin-top: 6px; color: var(--text-muted);">
             All-time cash flow
         </div>
     </div>
@@ -53,7 +53,7 @@
     <div class="card health">
         <h3>Financial Health</h3>
         <p style="color: {{ health_stats.color }};">
-            {{ health_stats.score }}<span style="font-size: 1rem; color: #64748b; font-weight: 500;">/100</span>
+            {{ health_stats.score }}<span style="font-size: 1rem; color: var(--text-muted); font-weight: 500;">/100</span>
         </p>
         <div style="font-size: 0.85rem; margin-top: 4px; color: {{ health_stats.color }}; font-weight: 600;">
             ● {{ health_stats.status }} ({{ health_stats.savings_rate }}% saved)
@@ -62,25 +62,25 @@
 </section>
 
 <!-- Smart Spending Insights Bar -->
-<section style="background: #ffffff; padding: 18px 24px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 30px; display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px; text-align: center;">
+<section style="background: var(--bg-card); padding: 18px 24px; border-radius: 10px; border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 30px; display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px; text-align: center;">
     <div>
-        <div style="font-size: 0.8rem; color: #64748b; text-transform: uppercase; font-weight: 600;">Daily Burn Rate</div>
-        <div class="money-value" style="font-size: 1.25rem; font-weight: 700; color: #dc2626; margin-top: 4px;">
-            ${{ "%.2f"|format(burn_stats.daily_burn_rate) }}<span style="font-size: 0.85rem; color: #64748b; font-weight: normal;">/day</span>
+        <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Daily Burn Rate</div>
+        <div class="money-value" style="font-size: 1.25rem; font-weight: 700; color: var(--expense); margin-top: 4px;">
+            ${{ "%.2f"|format(burn_stats.daily_burn_rate) }}<span style="font-size: 0.85rem; color: var(--text-muted); font-weight: normal;">/day</span>
         </div>
     </div>
     
-    <div style="border-left: 1px solid #e2e8f0; padding-left: 20px;">
-        <div style="font-size: 0.8rem; color: #64748b; text-transform: uppercase; font-weight: 600;">Safe Daily Spend</div>
-        <div class="money-value" style="font-size: 1.25rem; font-weight: 700; color: #2563eb; margin-top: 4px;">
-            ${{ "%.2f"|format(burn_stats.safe_daily_spend) }}<span style="font-size: 0.85rem; color: #64748b; font-weight: normal;">/day</span>
+    <div style="border-left: 1px solid var(--border-color); padding-left: 20px;">
+        <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Safe Daily Spend</div>
+        <div class="money-value" style="font-size: 1.25rem; font-weight: 700; color: var(--primary); margin-top: 4px;">
+            ${{ "%.2f"|format(burn_stats.safe_daily_spend) }}<span style="font-size: 0.85rem; color: var(--text-muted); font-weight: normal;">/day</span>
         </div>
-        <div style="font-size: 0.75rem; color: #64748b;">for next {{ burn_stats.days_remaining }} days</div>
+        <div style="font-size: 0.75rem; color: var(--text-muted);">for next {{ burn_stats.days_remaining }} days</div>
     </div>
 
-    <div style="border-left: 1px solid #e2e8f0; padding-left: 20px;">
-        <div style="font-size: 0.8rem; color: #64748b; text-transform: uppercase; font-weight: 600;">Runway Estimate</div>
-        <div style="font-size: 1.25rem; font-weight: 700; color: {% if burn_stats.runway_days and burn_stats.runway_days > 30 %}#16a34a{% elif burn_stats.runway_days and burn_stats.runway_days > 14 %}#f59e0b{% else %}#dc2626{% endif %}; margin-top: 4px;">
+    <div style="border-left: 1px solid var(--border-color); padding-left: 20px;">
+        <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Runway Estimate</div>
+        <div style="font-size: 1.25rem; font-weight: 700; color: {% if burn_stats.runway_days and burn_stats.runway_days > 30 %}var(--income){% elif burn_stats.runway_days and burn_stats.runway_days > 14 %}#f59e0b{% else %}var(--expense){% endif %}; margin-top: 4px;">
             {% if burn_stats.runway_days is not none %}
                 {{ burn_stats.runway_days }} days
             {% else %}
@@ -92,30 +92,30 @@
 
 <!-- Monthly Category Budgets -->
 {% if budget_progress %}
-<section style="background: #ffffff; padding: 24px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 30px;">
+<section style="background: var(--bg-card); padding: 24px; border-radius: 10px; border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 30px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h2 style="font-size: 1.2rem;">Monthly Category Budgets</h2>
-        <a href="{{ url_for('manage_budgets') }}" style="font-size: 0.88rem; color: #2563eb; text-decoration: none; font-weight: 600;">⚙️ Manage Limits</a>
+        <h2 style="font-size: 1.2rem; color: var(--text-primary);">Monthly Category Budgets</h2>
+        <a href="{{ url_for('manage_budgets') }}" style="font-size: 0.88rem; color: var(--primary); text-decoration: none; font-weight: 600;">⚙️ Manage Limits</a>
     </div>
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px;">
         {% for b in budget_progress %}
-        <div style="background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <div style="background: var(--bg-subtle); padding: 16px; border-radius: 8px; border: 1px solid var(--border-color);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="font-weight: 700; font-size: 0.95rem;">{{ b.category }}</span>
+                <span style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary);">{{ b.category }}</span>
                 <span style="font-size: 0.78rem; font-weight: 700; color: {{ b.color }}; text-transform: uppercase;">{{ b.status }}</span>
             </div>
 
-            <div style="background: #e2e8f0; height: 10px; border-radius: 5px; overflow: hidden; margin-bottom: 8px;">
+            <div style="background: var(--border-color); height: 10px; border-radius: 5px; overflow: hidden; margin-bottom: 8px;">
                 <div style="background: {{ b.color }}; height: 100%; width: {{ b.percent }}%; transition: width 0.4s ease-in-out;"></div>
             </div>
 
-            <div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: #64748b;">
-                <span>Spent: <strong class="money-value" style="color: #1e293b;">${{ "%.2f"|format(b.spent) }}</strong></span>
-                <span>Limit: <strong class="money-value" style="color: #1e293b;">${{ "%.2f"|format(b.limit) }}</strong></span>
+            <div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--text-muted);">
+                <span>Spent: <strong class="money-value" style="color: var(--text-primary);">${{ "%.2f"|format(b.spent) }}</strong></span>
+                <span>Limit: <strong class="money-value" style="color: var(--text-primary);">${{ "%.2f"|format(b.limit) }}</strong></span>
             </div>
             
-            <div style="text-align: right; font-size: 0.75rem; margin-top: 4px; color: {% if b.remaining < 0 %}#dc2626{% else %}#16a34a{% endif %}; font-weight: 600;">
+            <div style="text-align: right; font-size: 0.75rem; margin-top: 4px; color: {% if b.remaining < 0 %}var(--expense){% else %}var(--income){% endif %}; font-weight: 600;">
                 {% if b.remaining < 0 %}
                     Over by ${{ "%.2f"|format(b.remaining|abs) }}
                 {% else %}
@@ -134,7 +134,7 @@
         <h2>Recent Transactions</h2>
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
             <input type="text" id="transactionSearch" class="search-input" placeholder="🔍 Search transactions..." onkeyup="filterTransactions()">
-            <a href="{{ url_for('export_csv') }}" style="background: #16a34a; color: white; padding: 8px 14px; border-radius: 6px; text-decoration: none; font-size: 0.88rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+            <a href="{{ url_for('export_csv') }}" style="background: var(--income); color: white; padding: 8px 14px; border-radius: 6px; text-decoration: none; font-size: 0.88rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
                 📥 Export CSV
             </a>
         </div>
@@ -173,7 +173,7 @@
                     </span>
                 </td>
                 <td>{{ t['type']|capitalize }}</td>
-                <td class="money-value" style="font-weight: bold; color: {% if t['type'] == 'income' %}#16a34a{% else %}#dc2626{% endif %};">
+                <td class="money-value" style="font-weight: bold; color: {% if t['type'] == 'income' %}var(--income){% else %}var(--expense){% endif %};">
                     {% if t['type'] == 'income' %}+{% else %}-{% endif %}${{ "%.2f"|format(t['amount']) }}
                 </td>
                 <td class="searchable-notes">{{ t['notes'] if t['notes'] else '-' }}</td>
@@ -186,7 +186,7 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="7" style="text-align: center; padding: 20px;">
+                <td colspan="7" style="text-align: center; padding: 20px; color: var(--text-muted);">
                     No transactions found. <a href="{{ url_for('add_transaction') }}">Add one to get started!</a>
                 </td>
             </tr>
