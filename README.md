@@ -1,91 +1,108 @@
-# 💰 Personal Finance Tracker
+<div align="center">
 
-A clean, responsive personal finance web application built with **Python (Flask)**, **SQLite**, and **Chart.js**. It enables users to track their incomes, expenses, and net balance in real-time, accompanied by an interactive category breakdown chart.
+# 💰 Personal Finance Tracker & Intelligence Hub
 
----
+[![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![Flask](https://img.shields.io/badge/Flask-3.0+-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
+[![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org)
+[![Chart.js](https://img.shields.io/badge/Chart.js-4.0+-FF6384?style=for-the-badge&logo=chartdotjs&logoColor=white)](https://www.chartjs.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 
-## ✨ Features
+An intelligent, self-hosted personal finance management web application built with **Python (Flask)**, **SQLite3**, and **Chart.js**. Designed with clean MVC architecture, actionable spending analytics, visual category budgets, and executive-level reporting.
 
-- **Full CRUD Operations**: Add, view, edit, and delete financial transactions with instant UI updates.
-- **Financial Health Summary**: Real-time calculations of Total Income, Total Expenses, and Net Balance.
-- **Interactive Visualizations**: Dynamic expense category breakdown powered by **Chart.js** (doughnut chart).
-- **Data Integrity & Safety**:
-  - SQLite check constraints ensure non-negative amounts, strict ISO date formatting (`YYYY-MM-DD`), and valid transaction types (`income` or `expense`).
-  - Parameterized SQL queries prevent SQL injection attacks.
-  - Destructive actions (deletions) use `POST` methods with user confirmation dialogues.
-- **Responsive Layout**: Designed with clean, modern CSS cards and tables that work smoothly across mobile, tablet, and desktop screens.
+[Explore Features](#-key-features) • [Architecture](#-architecture--data-flow) • [Quick Start](#-quick-start) • [Security & Design](#-security--design-principles)
 
----
-
-## 🛠️ Tech Stack
-
-- **Backend**: Python 3, Flask
-- **Database**: SQLite3
-- **Frontend**: HTML5, Modern CSS, Jinja2 Template Engine
-- **Data Visualization**: Chart.js
+</div>
 
 ---
 
-## 📁 Project Structure
+## 🌟 Key Features
+
+### 📊 1. Executive Analytics & Trend Reporting (Dedicated View)
+* **Monthly Expense Trajectory**: Smooth Bezier line chart tracking spending trends over time with area fills.
+* **Monthly Cash Flow Comparison**: Grouped dual-bar charts comparing earnings against spending per calendar month.
+* **Category Spending Ranking**: Horizontal ranked bar chart organizing expenditures from highest to lowest impact.
+
+### 🎯 2. Active Category Budgeting & Visual Progress
+* Set monthly spending thresholds per category (`Food & Dining`, `Rent`, `Utilities`, etc.).
+* Dynamic color-coded progress bars:
+  * 🟢 **On Track** (< 75% utilized)
+  * 🟡 **Near Limit** (75% – 99% utilized)
+  * 🔴 **Over Budget** (100%+ utilized with dynamic overflow calculations)
+* Built using atomic SQLite `INSERT ... ON CONFLICT DO UPDATE` upserts.
+
+### 🧠 3. Smart Financial Metrics & Runway Intelligence
+* **Financial Health Score (0–100)**: Evaluates monthly savings rate based on standard financial benchmarks (50/30/20 rule).
+* **Daily Burn Rate**: Computes real daily expense velocity for the current month.
+* **Safe Daily Spend**: Calculates the sustainable daily allowance for the remaining days of the month.
+* **Runway Projection**: Real-time estimate of how many days current reserves will last.
+* **Month-over-Month Badges**: Dynamic percentage changes vs. the previous month (green for reduced spending, red for increased).
+
+### ⚡ 4. Modern UX & Privacy
+* **Discreet / Privacy Mode (👁️)**: Instant client-side masking of all currency figures (`$****`) with `localStorage` persistence for public-space use.
+* **Smart Category Badges**: Automatic recognition and emoji prefixing (🍔 *Food*, 💼 *Salary*, 🚗 *Transport*, 🏠 *Housing*, 💡 *Utilities*).
+* **Zero-Latency Instant Search**: Real-time table filtering across titles, categories, and notes without page reload.
+* **In-Memory CSV Export**: One-click download of transactions streamed directly via Python’s `io.StringIO` (Excel / Google Sheets ready).
+* **Flash Message Banners**: Contextual alerts for creation, updates, and deletions.
+
+---
+
+## 🏗️ Architecture & Data Flow
+
+The project strictly follows the **Model-View-Controller (MVC)** architectural pattern:
 
 ```text
-Finance-Manager/
-│
-├── app.py                  # Main Flask routes and application logic
-├── db.py                   # SQLite connection & database initialization helpers
-├── schema.sql              # Database schema definition with constraints
-├── requirements.txt        # Python package dependencies
-├── .gitignore              # Files and folders to exclude from version control
-├── README.md               # Project documentation
-│
-└── templates/              # Jinja2 HTML templates
-    ├── base.html           # Base layout with navbar, embedded CSS, and CDN links
-    ├── index.html          # Dashboard view with summary cards, table, and charts
-    ├── add_transaction.html # Transaction creation form
-    └── edit_transaction.html# Pre-filled transaction editing form
+       ┌────────────────────────────────────────────────────────┐
+       │                   Browser / Client                     │
+       │  (Jinja2 Templates, CSS Grids, Vanilla JS, Chart.js)   │
+       └──────────────┬──────────────────────────▲──────────────┘
+                      │ HTTP Requests            │ HTML Responses /
+                      │ (GET, POST)              │ Streamed CSV
+                      ▼                          │
+       ┌─────────────────────────────────────────┴──────────────┐
+       │                   Flask Controllers                    │
+       │     (app.py - Routing, Validation, PRG Pattern)        │
+       └──────────────┬──────────────────────────▲──────────────┘
+                      │ Parameterized SQL        │ sqlite3.Row
+                      │ Queries                  │ Records
+                      ▼                          │
+       ┌─────────────────────────────────────────┴──────────────┐
+       │                   SQLite Data Layer                    │
+       │    (db.py, schema.sql, finance.db with Constraints)    │
+       └────────────────────────────────────────────────────────┘
 
-🚀 Getting Started
-Follow these steps to run the application locally on your machine:
-
+🚀 Quick Start
 1. Prerequisites
-Ensure you have Python 3.9+ installed on your computer.
+Python 3.9 or newer installed on your machine.
+Git installed.
 
-2. Clone the Repository
-bash
-
-
+# Clone the repository
 git clone https://github.com/YOUR_USERNAME/Finance-Manager.git
 cd Finance-Manager
-3. (Optional) Create a Virtual Environment
-bash
 
-
-# Windows
+# (Optional) Create and activate a virtual environment
+# Windows:
 python -m venv venv
 venv\Scripts\activate
-# macOS/Linux
+
+# macOS / Linux:
 python3 -m venv venv
 source venv/bin/activate
-4. Install Dependencies
-bash
 
-
+# Install dependencies
 pip install -r requirements.txt
-5. Initialize the Database
-Run the setup script to create the local SQLite database and table schema:
 
-bash
-
-
+Run the database setup script to generate finance.db and the database schema:
 python db.py
-6. Run the Application
-bash
-
-
+ Run the Application:
 python app.py
+
 Open your browser and navigate to:
-
-text
-
-
 http://127.0.0.1:5000
+
+🛡️ Security & Design Principles
+SQL Injection Immunization: All database interactions use parameterized queries (? syntax). User inputs are never interpolated directly into SQL statements.
+Strict Storage Constraints: The database enforces integrity at the schema level using SQLite CHECK constraints (positive amounts, ISO-8601 formatted dates, and validated transaction types).
+Safe State Mutation: Deletions and updates are strictly bound to HTTP POST methods with confirmation dialogs, preventing accidental execution via GET prefetching or crawlers.
+Post/Redirect/Get (PRG): All forms redirect after submission to eliminate duplicate transaction submissions on page refresh.
+Zero Memory Leaks: In-memory file streaming with io.StringIO for CSV exports prevents orphaned files on the server disk.
