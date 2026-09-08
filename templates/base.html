@@ -6,7 +6,6 @@
     <title>{% block title %}Finance Tracker{% endblock %}</title>
     
     <style>
-        /* ===== CSS Custom Properties (Theme Variables) ===== */
         :root {
             --bg-page: #f1f5f9;
             --bg-card: #ffffff;
@@ -23,7 +22,6 @@
             --sidebar-width: 270px;
         }
 
-        /* ===== Dark Mode Overrides ===== */
         body.dark-mode {
             --bg-page: #0b0f19;
             --bg-card: #151d30;
@@ -54,13 +52,11 @@
             min-height: 100vh;
         }
 
-        /* ===== App Layout: Left Sidebar + Right Main View ===== */
         .app-layout {
             display: flex;
             min-height: 100vh;
         }
 
-        /* Full Height Left Sidebar */
         .sidebar {
             width: var(--sidebar-width);
             background-color: var(--bg-card);
@@ -75,7 +71,6 @@
             height: 100vh;
         }
 
-        /* Brand & Toggles Header in Sidebar */
         .sidebar-brand-box {
             display: flex;
             flex-direction: column;
@@ -105,7 +100,6 @@
             gap: 6px;
         }
 
-        /* Control Buttons (Theme & Privacy) */
         .btn-control {
             background: var(--bg-subtle);
             border: 1px solid var(--border-color);
@@ -125,7 +119,6 @@
             color: var(--text-primary);
         }
 
-        /* Vertical Navigation Menu in Sidebar */
         .sidebar-nav {
             list-style: none;
             display: flex;
@@ -157,15 +150,13 @@
             transform: translateX(3px);
         }
 
-        /* Right Content Area */
         .main-wrapper {
             flex-grow: 1;
             display: flex;
             flex-direction: column;
-            min-width: 0; /* Prevents overflow */
+            min-width: 0;
         }
 
-        /* Top Header in Content Area (Holds + Add Transaction button) */
         .content-top-header {
             padding: 18px 36px;
             display: flex;
@@ -193,7 +184,6 @@
             filter: brightness(1.1);
         }
 
-        /* Main Page Content Body */
         .page-content {
             padding: 30px 36px;
             max-width: 1200px;
@@ -201,7 +191,6 @@
             margin: 0 auto;
         }
 
-        /* Discreet Privacy Mode */
         body.privacy-active .money-value {
             filter: blur(6px);
             user-select: none;
@@ -430,10 +419,9 @@
 </head>
 <body>
     <div class="app-layout">
-        <!-- 1. LEFT SIDEBAR (Runs all the way down the left side) -->
+        <!-- 1. LEFT SIDEBAR -->
         <aside class="sidebar">
             <div class="sidebar-brand-box">
-                <!-- Heading with Toggles directly beside it -->
                 <div class="brand-header-row">
                     <a href="{{ url_for('index') }}" class="logo">💰 Finance Tracker</a>
                     
@@ -448,24 +436,24 @@
                 </div>
             </div>
 
-            <!-- The 3 Navigation Buttons as rows stacked in the sidebar -->
+            <!-- Left Navigation Menu Items Stacked -->
             <ul class="sidebar-nav">
                 <li><a href="{{ url_for('index') }}">📊 Dashboard</a></li>
                 <li><a href="{{ url_for('analytics') }}">📈 Analytics</a></li>
+                <!-- NEW: Foreign Exchange Portfolio -->
+                <li><a href="{{ url_for('fx_portfolio') }}">💱 FX Portfolio</a></li>
                 <li><a href="{{ url_for('manage_budgets') }}">🎯 Budgets</a></li>
             </ul>
         </aside>
 
         <!-- 2. RIGHT MAIN CONTENT AREA -->
         <div class="main-wrapper">
-            <!-- Top Header containing only the + Add Transaction button -->
             <header class="content-top-header">
                 <a href="{{ url_for('add_transaction') }}" class="btn-add-transaction">
                     + Add Transaction
                 </a>
             </header>
 
-            <!-- Page Content Body -->
             <main class="page-content">
                 {% with messages = get_flashed_messages(with_categories=true) %}
                   {% if messages %}
