@@ -70,3 +70,32 @@ The project strictly follows the **Model-View-Controller (MVC)** architectural p
        │                   SQLite Data Layer                    │
        │    (db.py, schema.sql, finance.db with Constraints)    │
        └────────────────────────────────────────────────────────┘
+
+🚀 Quick Start
+1. Prerequisites
+Python 3.9 or newer installed on your machine.
+Git installed.
+
+# Clone the repository
+git clone https://github.com/YOUR_USERNAME/Finance-Manager.git
+cd Finance-Manager
+
+# (Optional) Create and activate a virtual environment
+# Windows:
+python -m venv venv
+venv\Scripts\activate
+
+# macOS / Linux:
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+Run the database setup script to generate finance.db and the database schema:
+python db.py
+4. Run the Application:
+python app.py
+
+Open your browser and navigate to:
+http://127.0.0.1:5000
