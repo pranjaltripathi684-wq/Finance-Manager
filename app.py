@@ -129,13 +129,9 @@ def get_month_comparison(conn):
 
 
 def get_budget_progress(conn):
-    """
-    Computes spending progress against category budgets for current month.
-    """
     today = datetime.now()
     cur_month = today.strftime('%Y-%m')
 
-    # Ensure budgets table exists
     conn.execute('''
         CREATE TABLE IF NOT EXISTS budgets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -151,7 +147,6 @@ def get_budget_progress(conn):
         cat = b['category']
         limit = b['monthly_limit']
 
-        # Query this month's expense for this category
         spent_row = conn.execute('''
             SELECT SUM(amount) as total
             FROM transactions
@@ -164,15 +159,14 @@ def get_budget_progress(conn):
         percent = round((spent / limit) * 100, 1)
         remaining = round(limit - spent, 2)
 
-        # Color coding: Green (<75%), Amber (75-99%), Red (>=100%)
         if percent >= 100:
-            color = '#dc2626' # Red
+            color = '#dc2626'
             status = 'Over Budget'
         elif percent >= 75:
-            color = '#f59e0b' # Amber
+            color = '#f59e0b'
             status = 'Near Limit'
         else:
-            color = '#16a34a' # Green
+            color = '#16a34a'
             status = 'On Track'
 
         progress_list.append({
@@ -205,14 +199,6 @@ def index():
     comparison = get_month_comparison(conn)
     budget_progress = get_budget_progress(conn)
 
-    category_data = conn.execute(
-        'SELECT category, SUM(amount) as total FROM transactions WHERE type = ? GROUP BY category',
-        ('expense',)
-    ).fetchall()
-
-    chart_labels = [row['category'] for row in category_data]
-    chart_data = [row['total'] for row in category_data]
-
     conn.close()
 
     return render_template(
@@ -224,9 +210,58 @@ def index():
         health_stats=health_stats,
         burn_stats=burn_stats,
         comparison=comparison,
-        budget_progress=budget_progress,
-        chart_labels=chart_labels,
-        chart_data=chart_data
+        budget_progress=budget_progress
+    )
+
+
+# NEW: Dedicated Analytics & Trends Page
+@app.route('/analytics')
+def analytics():
+    conn = get_db_connection()
+
+    # 1. Monthly Trends (Income vs Expense over time)
+    trend_rows = conn.execute('''
+        SELECT 
+            strftime('%Y-%m', date) as month,
+            type,
+            SUM(amount) as total
+        FROM transactions
+        GROUP BY month, type
+        ORDER BY month ASC
+    ''').fetchall()
+
+    month_dict = {}
+    for r in trend_rows:
+        m = r['month']
+        if m not in month_dict:
+            month_dict[m] = {'income': 0.0, 'expense': 0.0}
+        month_dict[m][r['type']] = round(r['total'], 2)
+
+    trend_months = sorted(list(month_dict.keys()))
+    trend_incomes = [month_dict[m]['income'] for m in trend_months]
+    trend_expenses = [month_dict[m]['expense'] for m in trend_months]
+
+    # 2. Category Spending Ranking (Sorted from highest to lowest)
+    cat_rows = conn.execute('''
+        SELECT category, SUM(amount) as total
+        FROM transactions
+        WHERE type = 'expense'
+        GROUP BY category
+        ORDER BY total DESC
+    ''').fetchall()
+
+    cat_labels = [r['category'] for r in cat_rows]
+    cat_totals = [round(r['total'], 2) for r in cat_rows]
+
+    conn.close()
+
+    return render_template(
+        'analytics.html',
+        trend_months=trend_months,
+        trend_incomes=trend_incomes,
+        trend_expenses=trend_expenses,
+        cat_labels=cat_labels,
+        cat_totals=cat_totals
     )
 
 
@@ -328,7 +363,6 @@ def edit_transaction(id):
     return render_template('edit_transaction.html', transaction=transaction)
 
 
-# NEW: Manage Budgets Route
 @app.route('/budgets', methods=['GET', 'POST'])
 def manage_budgets():
     conn = get_db_connection()
@@ -350,7 +384,6 @@ def manage_budgets():
             flash('Invalid limit number.', 'error')
             return redirect(url_for('manage_budgets'))
 
-        # Insert or replace budget if already exists for this category
         conn.execute('''
             INSERT INTO budgets (category, monthly_limit)
             VALUES (?, ?)
