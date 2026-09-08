@@ -94,8 +94,15 @@ pip install -r requirements.txt
 
 Run the database setup script to generate finance.db and the database schema:
 python db.py
-4. Run the Application:
+ Run the Application:
 python app.py
 
 Open your browser and navigate to:
 http://127.0.0.1:5000
+
+🛡️ Security & Design Principles
+SQL Injection Immunization: All database interactions use parameterized queries (? syntax). User inputs are never interpolated directly into SQL statements.
+Strict Storage Constraints: The database enforces integrity at the schema level using SQLite CHECK constraints (positive amounts, ISO-8601 formatted dates, and validated transaction types).
+Safe State Mutation: Deletions and updates are strictly bound to HTTP POST methods with confirmation dialogs, preventing accidental execution via GET prefetching or crawlers.
+Post/Redirect/Get (PRG): All forms redirect after submission to eliminate duplicate transaction submissions on page refresh.
+Zero Memory Leaks: In-memory file streaming with io.StringIO for CSV exports prevents orphaned files on the server disk.
