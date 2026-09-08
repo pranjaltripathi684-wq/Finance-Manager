@@ -20,9 +20,10 @@
             --primary: #2563eb;
             --income: #16a34a;
             --expense: #dc2626;
+            --sidebar-width: 270px;
         }
 
-        /* ===== Dark Mode Theme Overrides ===== */
+        /* ===== Dark Mode Overrides ===== */
         body.dark-mode {
             --bg-page: #0b0f19;
             --bg-card: #151d30;
@@ -50,55 +51,71 @@
             background-color: var(--bg-page);
             color: var(--text-primary);
             line-height: 1.6;
+            min-height: 100vh;
         }
 
-        /* Navbar */
-        nav {
-            background-color: var(--bg-card);
-            border-bottom: 1px solid var(--border-color);
-            padding: 14px 40px;
+        /* ===== App Layout: Left Sidebar + Right Main View ===== */
+        .app-layout {
             display: flex;
-            justify-content: space-between;
+            min-height: 100vh;
+        }
+
+        /* Full Height Left Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--bg-card);
+            border-right: 1px solid var(--border-color);
+            padding: 24px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+        }
+
+        /* Brand & Toggles Header in Sidebar */
+        .sidebar-brand-box {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .brand-header-row {
+            display: flex;
             align-items: center;
+            justify-content: space-between;
+            gap: 8px;
         }
 
         .logo {
             font-size: 1.25rem;
             font-weight: 700;
             color: var(--text-primary);
-        }
-
-        nav ul {
-            list-style: none;
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-
-        nav ul li a {
             text-decoration: none;
-            color: var(--text-muted);
-            font-weight: 500;
-            padding: 8px 14px;
-            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        nav ul li a:hover {
-            background-color: var(--bg-subtle);
-            color: var(--primary);
+        .toggle-btn-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         /* Control Buttons (Theme & Privacy) */
         .btn-control {
             background: var(--bg-subtle);
             border: 1px solid var(--border-color);
-            padding: 6px 12px;
+            padding: 5px 8px;
             border-radius: 6px;
-            font-size: 0.9rem;
+            font-size: 0.82rem;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
             font-weight: 500;
             color: var(--text-muted);
         }
@@ -108,17 +125,87 @@
             color: var(--text-primary);
         }
 
+        /* Vertical Navigation Menu in Sidebar */
+        .sidebar-nav {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-nav li a {
+            text-decoration: none;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 10px 14px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: transparent;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-nav li a:hover {
+            background-color: var(--bg-subtle);
+            border-color: var(--border-color);
+            color: var(--primary);
+            transform: translateX(3px);
+        }
+
+        /* Right Content Area */
+        .main-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0; /* Prevents overflow */
+        }
+
+        /* Top Header in Content Area (Holds + Add Transaction button) */
+        .content-top-header {
+            padding: 18px 36px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--bg-card);
+        }
+
+        .btn-add-transaction {
+            background: var(--primary);
+            color: #ffffff !important;
+            padding: 9px 18px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.92rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+        }
+
+        .btn-add-transaction:hover {
+            filter: brightness(1.1);
+        }
+
+        /* Main Page Content Body */
+        .page-content {
+            padding: 30px 36px;
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
         /* Discreet Privacy Mode */
         body.privacy-active .money-value {
             filter: blur(6px);
             user-select: none;
             transition: filter 0.2s ease-in-out;
-        }
-
-        .container {
-            max-width: 960px;
-            margin: 30px auto;
-            padding: 0 20px;
         }
 
         .flash-messages {
@@ -332,7 +419,6 @@
         }
     </style>
 
-    <!-- Instant Pre-Render Theme Check (Prevents Flash of White Screen) -->
     <script>
         if (localStorage.getItem('theme') === 'dark') {
             document.documentElement.classList.add('dark-mode');
@@ -343,59 +429,72 @@
     </script>
 </head>
 <body>
-    <nav>
-        <div class="logo">💰 Finance Tracker</div>
-        <ul>
-            <!-- NEW: Dark Mode Toggle Button -->
-            <li>
-                <button id="themeToggle" class="btn-control" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
-                    <span id="themeIcon">🌙</span>
-                </button>
-            </li>
-            <!-- Privacy Mode Toggle Button -->
-            <li>
-                <button id="privacyToggle" class="btn-control" onclick="togglePrivacyMode()" title="Toggle Private Numbers">
-                    <span id="privacyIcon">👁️</span> <span id="privacyText">Privacy</span>
-                </button>
-            </li>
-            <li><a href="{{ url_for('index') }}">Dashboard</a></li>
-            <li><a href="{{ url_for('analytics') }}">📈 Analytics</a></li>
-            <li><a href="{{ url_for('manage_budgets') }}">🎯 Budgets</a></li>
-            <li><a href="{{ url_for('add_transaction') }}">+ Add Transaction</a></li>
-        </ul>
-    </nav>
-
-    <main class="container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            <div class="flash-messages">
-              {% for category, message in messages %}
-                <div class="alert alert-{{ category }}">
-                  {% if category == 'success' %}✅{% elif category == 'info' %}ℹ️{% elif category == 'warning' %}⚠️{% else %}❌{% endif %}
-                  <span style="margin-left: 8px;">{{ message }}</span>
+    <div class="app-layout">
+        <!-- 1. LEFT SIDEBAR (Runs all the way down the left side) -->
+        <aside class="sidebar">
+            <div class="sidebar-brand-box">
+                <!-- Heading with Toggles directly beside it -->
+                <div class="brand-header-row">
+                    <a href="{{ url_for('index') }}" class="logo">💰 Finance Tracker</a>
+                    
+                    <div class="toggle-btn-group">
+                        <button id="themeToggle" class="btn-control" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+                            <span id="themeIcon">🌙</span>
+                        </button>
+                        <button id="privacyToggle" class="btn-control" onclick="togglePrivacyMode()" title="Toggle Private Numbers">
+                            <span id="privacyIcon">👁️</span>
+                        </button>
+                    </div>
                 </div>
-              {% endfor %}
             </div>
-          {% endif %}
-        {% endwith %}
 
-        {% block content %}{% endblock %}
-    </main>
+            <!-- The 3 Navigation Buttons as rows stacked in the sidebar -->
+            <ul class="sidebar-nav">
+                <li><a href="{{ url_for('index') }}">📊 Dashboard</a></li>
+                <li><a href="{{ url_for('analytics') }}">📈 Analytics</a></li>
+                <li><a href="{{ url_for('manage_budgets') }}">🎯 Budgets</a></li>
+            </ul>
+        </aside>
 
-    <!-- Theme and Privacy Controller Scripts -->
+        <!-- 2. RIGHT MAIN CONTENT AREA -->
+        <div class="main-wrapper">
+            <!-- Top Header containing only the + Add Transaction button -->
+            <header class="content-top-header">
+                <a href="{{ url_for('add_transaction') }}" class="btn-add-transaction">
+                    + Add Transaction
+                </a>
+            </header>
+
+            <!-- Page Content Body -->
+            <main class="page-content">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    <div class="flash-messages">
+                      {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                          {% if category == 'success' %}✅{% elif category == 'info' %}ℹ️{% elif category == 'warning' %}⚠️{% else %}❌{% endif %}
+                          <span style="margin-left: 8px;">{{ message }}</span>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                {% endwith %}
+
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
     <script>
-        // 1. Dark Mode Logic
         function toggleTheme() {
             const body = document.body;
             const isDark = body.classList.toggle('dark-mode');
             document.getElementById('themeIcon').textContent = isDark ? '☀️' : '🌙';
             localStorage.setItem('theme', isDark ? 'dark' : 'light');
 
-            // Dispatch event so Chart.js on analytics page can re-color grids
             window.dispatchEvent(new Event('themeChanged'));
         }
 
-        // Initialize Theme Icons on Load
         document.addEventListener('DOMContentLoaded', () => {
             if (localStorage.getItem('theme') === 'dark') {
                 document.body.classList.add('dark-mode');
@@ -403,21 +502,18 @@
             }
         });
 
-        // 2. Privacy Mode Logic
         function togglePrivacyMode() {
             const body = document.body;
             body.classList.toggle('privacy-active');
             const isPrivate = body.classList.contains('privacy-active');
             
             document.getElementById('privacyIcon').textContent = isPrivate ? '🙈' : '👁️';
-            document.getElementById('privacyText').textContent = isPrivate ? 'Hidden' : 'Privacy';
             localStorage.setItem('privacyMode', isPrivate ? 'true' : 'false');
         }
 
         if (localStorage.getItem('privacyMode') === 'true') {
             document.body.classList.add('privacy-active');
             document.getElementById('privacyIcon').textContent = '🙈';
-            document.getElementById('privacyText').textContent = 'Hidden';
         }
     </script>
 

@@ -3,7 +3,7 @@
 {% block title %}Dashboard - Finance Tracker{% endblock %}
 
 {% block content %}
-<!-- NEW: Cryptographic Audit Status Banner -->
+<!-- Cryptographic Audit Status Banner -->
 <div style="background: var(--bg-card); padding: 14px 20px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
     <div style="display: flex; align-items: center; gap: 10px;">
         <span style="font-size: 1.2rem;">{% if ledger_valid %}🛡️{% else %}🚨{% endif %}</span>
@@ -25,6 +25,45 @@
         </button>
     </form>
 </div>
+
+<!-- Algorithmic Anomaly & Fraud Sentinel Alert Drawer with Controls -->
+{% if anomalies %}
+<div style="background: rgba(220, 38, 38, 0.08); border: 1px solid rgba(220, 38, 38, 0.3); border-radius: 10px; padding: 18px 24px; margin-bottom: 26px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.25rem;">🚨</span>
+            <h3 style="font-size: 1rem; color: var(--expense); margin: 0;">Sentinel Audit: {{ anomalies|length }} Anomalies Detected</h3>
+        </div>
+
+        <!-- Re-check Button -->
+        <form method="POST" action="{{ url_for('recheck_anomalies') }}" style="margin: 0; padding: 0; background: none; border: none; box-shadow: none;">
+            <button type="submit" class="btn-control" style="font-size: 0.8rem; padding: 5px 12px; cursor: pointer;">
+                🔄 Re-check Sentinel
+            </button>
+        </form>
+    </div>
+
+    <ul style="list-style: none; padding-left: 0; margin: 0;">
+        {% for a in anomalies %}
+        <li style="font-size: 0.88rem; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; background: var(--bg-card); padding: 10px 14px; border-radius: 6px; border: 1px solid var(--border-color);">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="background: {% if a.level == 'danger' %}var(--expense){% else %}#f59e0b{% endif %}; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase;">
+                    {{ a.type }}
+                </span>
+                <span style="color: var(--text-primary);">{{ a.message }}</span>
+            </div>
+
+            <!-- Action Button: Allow Duplicate / Dismiss Alert -->
+            <form method="POST" action="{{ url_for('dismiss_anomaly', id=a.transaction_id) }}" style="margin: 0; padding: 0; background: none; border: none; box-shadow: none;">
+                <button type="submit" style="background: var(--bg-subtle); border: 1px solid var(--border-color); color: var(--text-primary); font-size: 0.78rem; font-weight: 600; padding: 4px 10px; border-radius: 4px; cursor: pointer;">
+                    ✓ Allow & Dismiss
+                </button>
+            </form>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
 
 <section class="summary">
     <!-- Income Card -->
@@ -172,15 +211,22 @@
                 <th>Type</th>
                 <th>Amount</th>
                 <th>Notes</th>
-                <th>Hash Sig</th>
+                <th>Audit</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
             {% for t in transactions %}
-            <tr class="transaction-row">
+            <tr class="transaction-row" style="{% if t['id'] in flagged_ids %}background: rgba(220, 38, 38, 0.05);{% endif %}">
                 <td>{{ t['date'] }}</td>
-                <td class="searchable-title"><strong>{{ t['title'] }}</strong></td>
+                <td class="searchable-title">
+                    <strong>{{ t['title'] }}</strong>
+                    {% if t['id'] in flagged_ids %}
+                        <div style="font-size: 0.72rem; color: var(--expense); font-weight: 700; margin-top: 2px;">
+                            {{ flagged_ids[t['id']] }}
+                        </div>
+                    {% endif %}
+                </td>
                 <td>
                     <span class="category-badge">
                         {% set cat = t['category']|lower %}
@@ -201,7 +247,6 @@
                     {% if t['type'] == 'income' %}+{% else %}-{% endif %}${{ "%.2f"|format(t['amount']) }}
                 </td>
                 <td class="searchable-notes">{{ t['notes'] if t['notes'] else '-' }}</td>
-                <!-- Shortened SHA-256 Fingerprint -->
                 <td>
                     <code style="font-size: 0.75rem; background: var(--bg-subtle); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-color); color: var(--text-muted);" title="{{ t['curr_hash'] }}">
                         {{ (t['curr_hash'] or '00000000')[:8] }}...

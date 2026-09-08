@@ -1,10 +1,12 @@
 import os
 import io
 import csv
+import math
+import random
 import hashlib
 import calendar
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, redirect, url_for, flash, Response, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, Response
 from db import get_db_connection
 
 app = Flask(__name__)
@@ -14,21 +16,15 @@ GENESIS_HASH = "0000000000000000000000000000000000000000000000000000000000000000
 
 
 # ============================================================================
-# CRYPTOGRAPHIC LEDGER HASH CHAIN ENGINE
+# 1. CRYPTOGRAPHIC LEDGER ENGINE
 # ============================================================================
 
 def compute_row_hash(prev_hash, date_str, title, amount, type_, category, notes=""):
-    """
-    Computes a cryptographic SHA-256 hash linking the previous block to this row.
-    """
     payload = f"{prev_hash}|{date_str}|{title.strip()}|{amount:.2f}|{type_.strip()}|{category.strip()}|{(notes or '').strip()}"
     return hashlib.sha256(payload.encode('utf-8')).hexdigest()
 
 
 def ensure_hash_columns(conn):
-    """
-    Ensures prev_hash and curr_hash exist in SQLite and populates any unhashed rows.
-    """
     cursor = conn.cursor()
     cursor.execute("PRAGMA table_info(transactions)")
     columns = [col[1] for col in cursor.fetchall()]
@@ -38,14 +34,17 @@ def ensure_hash_columns(conn):
     if 'curr_hash' not in columns:
         conn.execute("ALTER TABLE transactions ADD COLUMN curr_hash TEXT NOT NULL DEFAULT ''")
 
-    # Re-calculate hash chain for any legacy unhashed rows
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS dismissed_anomalies (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            transaction_id INTEGER UNIQUE NOT NULL
+        )
+    ''')
+
     rebuild_ledger_chain(conn)
 
 
 def rebuild_ledger_chain(conn):
-    """
-    Recalculates the entire cryptographic chain sequentially from ID 1 to N.
-    """
     rows = conn.execute("SELECT * FROM transactions ORDER BY id ASC").fetchall()
     last_hash = GENESIS_HASH
 
@@ -62,19 +61,13 @@ def rebuild_ledger_chain(conn):
 
 
 def verify_ledger_integrity(conn):
-    """
-    Verifies that every cryptographic block links correctly to its parent.
-    Returns: (is_valid: bool, compromised_row_id: int or None, total_checked: int)
-    """
     rows = conn.execute("SELECT * FROM transactions ORDER BY id ASC").fetchall()
     last_hash = GENESIS_HASH
 
     for r in rows:
-        # Check 1: Does row link to previous hash?
         if r['prev_hash'] != last_hash:
             return False, r['id'], len(rows)
 
-        # Check 2: Does current hash match data?
         computed = compute_row_hash(
             last_hash, r['date'], r['title'], r['amount'], r['type'], r['category'], r['notes']
         )
@@ -87,7 +80,162 @@ def verify_ledger_integrity(conn):
 
 
 # ============================================================================
-# FINANCIAL ANALYTICS & INSIGHT HELPERS
+# 2. ALGORITHMIC ANOMALY & FRAUD SENTINEL
+# ============================================================================
+
+def detect_anomalies(conn, transactions):
+    anomalies = []
+    flagged_ids = {}
+
+    if not transactions:
+        return anomalies, flagged_ids
+
+    dismissed_rows = conn.execute("SELECT transaction_id FROM dismissed_anomalies").fetchall()
+    dismissed_ids = set(r['transaction_id'] for r in dismissed_rows)
+
+    cat_expenses = {}
+    for t in transactions:
+        if t['type'] == 'expense':
+            cat = t['category']
+            cat_expenses.setdefault(cat, []).append(t['amount'])
+
+    cat_stats = {}
+    for cat, amounts in cat_expenses.items():
+        if len(amounts) >= 3:
+            mean = sum(amounts) / len(amounts)
+            variance = sum((x - mean) ** 2 for x in amounts) / len(amounts)
+            std_dev = math.sqrt(variance)
+            cat_stats[cat] = {'mean': mean, 'std_dev': std_dev}
+
+    for t in transactions:
+        if t['id'] in dismissed_ids:
+            continue
+
+        if t['type'] == 'expense' and t['category'] in cat_stats:
+            stats = cat_stats[t['category']]
+            if stats['std_dev'] > 0:
+                z_score = (t['amount'] - stats['mean']) / stats['std_dev']
+                if z_score >= 2.0:
+                    msg = f"Unusual {t['category']} expense of ${t['amount']:.2f} (Z-Score: +{z_score:.1f}σ vs category avg ${stats['mean']:.2f})"
+                    anomalies.append({
+                        'type': 'outlier',
+                        'level': 'danger',
+                        'title': 'Statistical Outlier',
+                        'message': msg,
+                        'transaction_id': t['id']
+                    })
+                    flagged_ids[t['id']] = '⚠️ Outlier (High Z-Score)'
+
+    sorted_by_date = sorted(transactions, key=lambda x: x['date'])
+    for i in range(len(sorted_by_date)):
+        for j in range(i + 1, len(sorted_by_date)):
+            t1 = sorted_by_date[i]
+            t2 = sorted_by_date[j]
+
+            if t1['id'] in dismissed_ids or t2['id'] in dismissed_ids:
+                continue
+
+            if t1['title'].lower() == t2['title'].lower() and abs(t1['amount'] - t2['amount']) < 0.01:
+                try:
+                    d1 = datetime.strptime(t1['date'], '%Y-%m-%d')
+                    d2 = datetime.strptime(t2['date'], '%Y-%m-%d')
+                    diff_days = abs((d2 - d1).days)
+
+                    if diff_days <= 2:
+                        msg = f'Possible Duplicate: "{t1["title"]}" (${t1["amount"]:.2f}) on {t1["date"]} and {t2["date"]}'
+                        anomalies.append({
+                            'type': 'duplicate',
+                            'level': 'warning',
+                            'title': 'Potential Duplicate Charge',
+                            'message': msg,
+                            'transaction_id': t2['id']
+                        })
+                        flagged_ids[t1['id']] = '⚠️ Duplicate Candidate'
+                        flagged_ids[t2['id']] = '⚠️ Duplicate Candidate'
+                except ValueError:
+                    pass
+
+    return anomalies, flagged_ids
+
+
+# ============================================================================
+# 3. MONTE CARLO PROBABILISTIC SIMULATION ENGINE
+# ============================================================================
+
+def run_monte_carlo_simulation(current_balance, trend_incomes, trend_expenses, num_simulations=1000, months_ahead=12):
+    """
+    Executes a 1,000-trial Monte Carlo simulation to project future net balances
+    and calculate probability of cash insolvency (Risk of Ruin).
+    """
+    # Calculate historical net monthly savings (Income - Expense)
+    monthly_nets = []
+    for inc, exp in zip(trend_incomes, trend_expenses):
+        monthly_nets.append(inc - exp)
+
+    if not monthly_nets:
+        monthly_nets = [0.0]
+
+    mean_net = sum(monthly_nets) / len(monthly_nets)
+    if len(monthly_nets) > 1:
+        variance = sum((x - mean_net) ** 2 for x in monthly_nets) / (len(monthly_nets) - 1)
+        std_dev_net = math.sqrt(variance)
+    else:
+        std_dev_net = abs(mean_net * 0.25) or 100.0  # 25% fallback volatility
+
+    # Run simulations
+    # simulation_matrix[month_idx] = list of 1,000 balances for that month
+    simulation_matrix = [[] for _ in range(months_ahead + 1)]
+    for _ in range(num_simulations):
+        simulation_matrix[0].append(current_balance)
+
+    ruin_count = 0
+
+    for trial in range(num_simulations):
+        bal = current_balance
+        hit_ruin = False
+
+        for m in range(1, months_ahead + 1):
+            # Sample monthly cashflow from Gaussian normal distribution
+            monthly_delta = random.gauss(mean_net, std_dev_net)
+            bal += monthly_delta
+            simulation_matrix[m].append(bal)
+
+            if bal < 0:
+                hit_ruin = True
+
+        if hit_ruin:
+            ruin_count += 1
+
+    risk_of_ruin = round((ruin_count / num_simulations) * 100, 1)
+
+    # Extract percentiles (5th pessimistic, 50th median, 95th optimistic)
+    p5_curve = []
+    p50_curve = []
+    p95_curve = []
+
+    for m in range(months_ahead + 1):
+        sorted_balances = sorted(simulation_matrix[m])
+        p5_curve.append(round(sorted_balances[int(num_simulations * 0.05)], 2))
+        p50_curve.append(round(sorted_balances[int(num_simulations * 0.50)], 2))
+        p95_curve.append(round(sorted_balances[int(num_simulations * 0.95)], 2))
+
+    # Generate future month labels: "Now", "+1 Mo", "+2 Mo"...
+    sim_labels = ["Now"] + [f"+{m} Mo" for m in range(1, months_ahead + 1)]
+
+    return {
+        'sim_labels': sim_labels,
+        'p5_curve': p5_curve,
+        'p50_curve': p50_curve,
+        'p95_curve': p95_curve,
+        'risk_of_ruin': risk_of_ruin,
+        'projected_median': p50_curve[-1],
+        'projected_optimistic': p95_curve[-1],
+        'projected_pessimistic': p5_curve[-1]
+    }
+
+
+# ============================================================================
+# 4. FINANCIAL ANALYTICS HELPERS
 # ============================================================================
 
 def calculate_financial_health(total_income, total_expense):
@@ -264,7 +412,7 @@ def get_budget_progress(conn):
 
 
 # ============================================================================
-# ROUTES & VIEWS
+# 5. APPLICATION ROUTES
 # ============================================================================
 
 @app.route('/')
@@ -285,8 +433,8 @@ def index():
     comparison = get_month_comparison(conn)
     budget_progress = get_budget_progress(conn)
 
-    # Verify cryptographic integrity
     is_valid, bad_id, total_checked = verify_ledger_integrity(conn)
+    anomalies, flagged_ids = detect_anomalies(conn, transactions)
 
     conn.close()
 
@@ -302,11 +450,38 @@ def index():
         budget_progress=budget_progress,
         ledger_valid=is_valid,
         compromised_id=bad_id,
-        total_verified=total_checked
+        total_verified=total_checked,
+        anomalies=anomalies,
+        flagged_ids=flagged_ids
     )
 
 
-# NEW: Audit Verification Route
+@app.route('/anomalies/dismiss/<int:id>', methods=['POST'])
+def dismiss_anomaly(id):
+    conn = get_db_connection()
+    conn.execute('INSERT OR IGNORE INTO dismissed_anomalies (transaction_id) VALUES (?)', (id,))
+    conn.commit()
+    conn.close()
+
+    flash('✅ Duplicate marked as authorized and dismissed from alert sentinel.', 'success')
+    return redirect(url_for('index'))
+
+
+@app.route('/anomalies/recheck', methods=['POST'])
+def recheck_anomalies():
+    conn = get_db_connection()
+    transactions = conn.execute('SELECT * FROM transactions').fetchall()
+    anomalies, _ = detect_anomalies(conn, transactions)
+    conn.close()
+
+    if anomalies:
+        flash(f'🔍 Audit Complete: Sentinel found {len(anomalies)} active financial anomalies requiring review.', 'warning')
+    else:
+        flash('✨ Audit Complete: No unaddressed anomalies or suspicious duplicate charges detected!', 'success')
+
+    return redirect(url_for('index'))
+
+
 @app.route('/audit/verify', methods=['POST'])
 def audit_verify():
     conn = get_db_connection()
@@ -322,10 +497,12 @@ def audit_verify():
     return redirect(url_for('index'))
 
 
+# DEDICATED ANALYTICS & MONTE CARLO STUDIO
 @app.route('/analytics')
 def analytics():
     conn = get_db_connection()
 
+    # 1. Historical Trends
     trend_rows = conn.execute('''
         SELECT 
             strftime('%Y-%m', date) as month,
@@ -347,6 +524,12 @@ def analytics():
     trend_incomes = [month_dict[m]['income'] for m in trend_months]
     trend_expenses = [month_dict[m]['expense'] for m in trend_months]
 
+    # Current Net Balance
+    tot_inc = sum(trend_incomes)
+    tot_exp = sum(trend_expenses)
+    current_balance = tot_inc - tot_exp
+
+    # 2. Category Spending Ranking
     cat_rows = conn.execute('''
         SELECT category, SUM(amount) as total
         FROM transactions
@@ -358,6 +541,9 @@ def analytics():
     cat_labels = [r['category'] for r in cat_rows]
     cat_totals = [round(r['total'], 2) for r in cat_rows]
 
+    # 3. Monte Carlo Simulation Engine (1,000 Iterations)
+    monte_carlo = run_monte_carlo_simulation(current_balance, trend_incomes, trend_expenses)
+
     conn.close()
 
     return render_template(
@@ -366,7 +552,8 @@ def analytics():
         trend_incomes=trend_incomes,
         trend_expenses=trend_expenses,
         cat_labels=cat_labels,
-        cat_totals=cat_totals
+        cat_totals=cat_totals,
+        monte_carlo=monte_carlo
     )
 
 
@@ -396,11 +583,9 @@ def add_transaction():
         conn = get_db_connection()
         ensure_hash_columns(conn)
 
-        # Get hash of the current last transaction
         last_row = conn.execute("SELECT curr_hash FROM transactions ORDER BY id DESC LIMIT 1").fetchone()
         prev_hash = last_row['curr_hash'] if last_row and last_row['curr_hash'] else GENESIS_HASH
 
-        # Compute this row's cryptographic hash
         curr_hash = compute_row_hash(prev_hash, date, title, amount, type_, category, notes)
 
         conn.execute(
@@ -422,9 +607,9 @@ def delete_transaction(id):
     conn = get_db_connection()
     ensure_hash_columns(conn)
     conn.execute('DELETE FROM transactions WHERE id = ?', (id,))
+    conn.execute('DELETE FROM dismissed_anomalies WHERE transaction_id = ?', (id,))
     conn.commit()
 
-    # Re-seal the chain from the deleted node forward
     rebuild_ledger_chain(conn)
     conn.close()
 
@@ -467,7 +652,6 @@ def edit_transaction(id):
         )
         conn.commit()
 
-        # Re-compute hashes for this row and all subsequent rows
         rebuild_ledger_chain(conn)
         conn.close()
 
