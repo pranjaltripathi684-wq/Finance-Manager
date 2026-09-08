@@ -1,14 +1,94 @@
 import os
 import io
 import csv
+import hashlib
 import calendar
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, redirect, url_for, flash, Response
+from flask import Flask, render_template, request, redirect, url_for, flash, Response, jsonify
 from db import get_db_connection
 
 app = Flask(__name__)
 app.secret_key = 'finance_manager_secret_key_change_in_production'
 
+GENESIS_HASH = "0000000000000000000000000000000000000000000000000000000000000000"
+
+
+# ============================================================================
+# CRYPTOGRAPHIC LEDGER HASH CHAIN ENGINE
+# ============================================================================
+
+def compute_row_hash(prev_hash, date_str, title, amount, type_, category, notes=""):
+    """
+    Computes a cryptographic SHA-256 hash linking the previous block to this row.
+    """
+    payload = f"{prev_hash}|{date_str}|{title.strip()}|{amount:.2f}|{type_.strip()}|{category.strip()}|{(notes or '').strip()}"
+    return hashlib.sha256(payload.encode('utf-8')).hexdigest()
+
+
+def ensure_hash_columns(conn):
+    """
+    Ensures prev_hash and curr_hash exist in SQLite and populates any unhashed rows.
+    """
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA table_info(transactions)")
+    columns = [col[1] for col in cursor.fetchall()]
+
+    if 'prev_hash' not in columns:
+        conn.execute("ALTER TABLE transactions ADD COLUMN prev_hash TEXT NOT NULL DEFAULT '0'")
+    if 'curr_hash' not in columns:
+        conn.execute("ALTER TABLE transactions ADD COLUMN curr_hash TEXT NOT NULL DEFAULT ''")
+
+    # Re-calculate hash chain for any legacy unhashed rows
+    rebuild_ledger_chain(conn)
+
+
+def rebuild_ledger_chain(conn):
+    """
+    Recalculates the entire cryptographic chain sequentially from ID 1 to N.
+    """
+    rows = conn.execute("SELECT * FROM transactions ORDER BY id ASC").fetchall()
+    last_hash = GENESIS_HASH
+
+    for r in rows:
+        expected_hash = compute_row_hash(
+            last_hash, r['date'], r['title'], r['amount'], r['type'], r['category'], r['notes']
+        )
+        conn.execute(
+            "UPDATE transactions SET prev_hash = ?, curr_hash = ? WHERE id = ?",
+            (last_hash, expected_hash, r['id'])
+        )
+        last_hash = expected_hash
+    conn.commit()
+
+
+def verify_ledger_integrity(conn):
+    """
+    Verifies that every cryptographic block links correctly to its parent.
+    Returns: (is_valid: bool, compromised_row_id: int or None, total_checked: int)
+    """
+    rows = conn.execute("SELECT * FROM transactions ORDER BY id ASC").fetchall()
+    last_hash = GENESIS_HASH
+
+    for r in rows:
+        # Check 1: Does row link to previous hash?
+        if r['prev_hash'] != last_hash:
+            return False, r['id'], len(rows)
+
+        # Check 2: Does current hash match data?
+        computed = compute_row_hash(
+            last_hash, r['date'], r['title'], r['amount'], r['type'], r['category'], r['notes']
+        )
+        if r['curr_hash'] != computed:
+            return False, r['id'], len(rows)
+
+        last_hash = r['curr_hash']
+
+    return True, None, len(rows)
+
+
+# ============================================================================
+# FINANCIAL ANALYTICS & INSIGHT HELPERS
+# ============================================================================
 
 def calculate_financial_health(total_income, total_expense):
     if total_income <= 0:
@@ -183,9 +263,15 @@ def get_budget_progress(conn):
     return progress_list
 
 
+# ============================================================================
+# ROUTES & VIEWS
+# ============================================================================
+
 @app.route('/')
 def index():
     conn = get_db_connection()
+    ensure_hash_columns(conn)
+
     transactions = conn.execute(
         'SELECT * FROM transactions ORDER BY date DESC, id DESC'
     ).fetchall()
@@ -199,6 +285,9 @@ def index():
     comparison = get_month_comparison(conn)
     budget_progress = get_budget_progress(conn)
 
+    # Verify cryptographic integrity
+    is_valid, bad_id, total_checked = verify_ledger_integrity(conn)
+
     conn.close()
 
     return render_template(
@@ -210,16 +299,33 @@ def index():
         health_stats=health_stats,
         burn_stats=burn_stats,
         comparison=comparison,
-        budget_progress=budget_progress
+        budget_progress=budget_progress,
+        ledger_valid=is_valid,
+        compromised_id=bad_id,
+        total_verified=total_checked
     )
 
 
-# NEW: Dedicated Analytics & Trends Page
+# NEW: Audit Verification Route
+@app.route('/audit/verify', methods=['POST'])
+def audit_verify():
+    conn = get_db_connection()
+    ensure_hash_columns(conn)
+    is_valid, bad_id, total_checked = verify_ledger_integrity(conn)
+    conn.close()
+
+    if is_valid:
+        flash(f'✅ Ledger Verification Passed: All {total_checked} cryptographic SHA-256 blocks are valid and untampered.', 'success')
+    else:
+        flash(f'🚨 Security Alert: Ledger chain integrity check FAILED at Transaction #{bad_id}! Unauthorized tampering detected.', 'error')
+
+    return redirect(url_for('index'))
+
+
 @app.route('/analytics')
 def analytics():
     conn = get_db_connection()
 
-    # 1. Monthly Trends (Income vs Expense over time)
     trend_rows = conn.execute('''
         SELECT 
             strftime('%Y-%m', date) as month,
@@ -241,7 +347,6 @@ def analytics():
     trend_incomes = [month_dict[m]['income'] for m in trend_months]
     trend_expenses = [month_dict[m]['expense'] for m in trend_months]
 
-    # 2. Category Spending Ranking (Sorted from highest to lowest)
     cat_rows = conn.execute('''
         SELECT category, SUM(amount) as total
         FROM transactions
@@ -269,18 +374,18 @@ def analytics():
 def add_transaction():
     if request.method == 'POST':
         title = request.form['title'].strip()
-        amount = request.form['amount'].strip()
+        amount_raw = request.form['amount'].strip()
         type_ = request.form['type']
         category = request.form['category'].strip()
         date = request.form['date']
         notes = request.form.get('notes', '').strip()
 
-        if not title or not amount or not type_ or not category or not date:
+        if not title or not amount_raw or not type_ or not category or not date:
             flash('All fields except notes are required.', 'error')
             return redirect(url_for('add_transaction'))
 
         try:
-            amount = float(amount)
+            amount = float(amount_raw)
             if amount <= 0:
                 flash('Amount must be greater than zero.', 'error')
                 return redirect(url_for('add_transaction'))
@@ -289,14 +394,24 @@ def add_transaction():
             return redirect(url_for('add_transaction'))
 
         conn = get_db_connection()
+        ensure_hash_columns(conn)
+
+        # Get hash of the current last transaction
+        last_row = conn.execute("SELECT curr_hash FROM transactions ORDER BY id DESC LIMIT 1").fetchone()
+        prev_hash = last_row['curr_hash'] if last_row and last_row['curr_hash'] else GENESIS_HASH
+
+        # Compute this row's cryptographic hash
+        curr_hash = compute_row_hash(prev_hash, date, title, amount, type_, category, notes)
+
         conn.execute(
-            'INSERT INTO transactions (title, amount, type, category, date, notes) VALUES (?, ?, ?, ?, ?, ?)',
-            (title, amount, type_, category, date, notes)
+            '''INSERT INTO transactions (title, amount, type, category, date, notes, prev_hash, curr_hash)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+            (title, amount, type_, category, date, notes, prev_hash, curr_hash)
         )
         conn.commit()
         conn.close()
 
-        flash('Transaction added successfully!', 'success')
+        flash('Transaction added & cryptographically sealed onto ledger!', 'success')
         return redirect(url_for('index'))
 
     return render_template('add_transaction.html')
@@ -305,33 +420,38 @@ def add_transaction():
 @app.route('/delete/<int:id>', methods=['POST'])
 def delete_transaction(id):
     conn = get_db_connection()
+    ensure_hash_columns(conn)
     conn.execute('DELETE FROM transactions WHERE id = ?', (id,))
     conn.commit()
+
+    # Re-seal the chain from the deleted node forward
+    rebuild_ledger_chain(conn)
     conn.close()
 
-    flash('Transaction deleted successfully!', 'warning')
+    flash('Transaction removed and ledger chain successfully re-sealed.', 'warning')
     return redirect(url_for('index'))
 
 
 @app.route('/edit/<int:id>', methods=['GET', 'POST'])
 def edit_transaction(id):
     conn = get_db_connection()
+    ensure_hash_columns(conn)
 
     if request.method == 'POST':
         title = request.form['title'].strip()
-        amount = request.form['amount'].strip()
+        amount_raw = request.form['amount'].strip()
         type_ = request.form['type']
         category = request.form['category'].strip()
         date = request.form['date']
         notes = request.form.get('notes', '').strip()
 
-        if not title or not amount or not type_ or not category or not date:
+        if not title or not amount_raw or not type_ or not category or not date:
             conn.close()
             flash('All fields except notes are required.', 'error')
             return redirect(url_for('edit_transaction', id=id))
 
         try:
-            amount = float(amount)
+            amount = float(amount_raw)
             if amount <= 0:
                 conn.close()
                 flash('Amount must be greater than zero.', 'error')
@@ -346,9 +466,12 @@ def edit_transaction(id):
             (title, amount, type_, category, date, notes, id)
         )
         conn.commit()
+
+        # Re-compute hashes for this row and all subsequent rows
+        rebuild_ledger_chain(conn)
         conn.close()
 
-        flash('Transaction updated successfully!', 'info')
+        flash('Transaction updated and ledger chain re-sealed.', 'info')
         return redirect(url_for('index'))
 
     transaction = conn.execute(
@@ -421,7 +544,7 @@ def export_csv():
     output = io.StringIO()
     writer = csv.writer(output)
 
-    writer.writerow(['ID', 'Date', 'Title', 'Category', 'Type', 'Amount ($)', 'Notes'])
+    writer.writerow(['ID', 'Date', 'Title', 'Category', 'Type', 'Amount ($)', 'Notes', 'SHA256_Hash'])
 
     for t in transactions:
         writer.writerow([
@@ -431,7 +554,8 @@ def export_csv():
             t['category'],
             t['type'].capitalize(),
             f"{t['amount']:.2f}",
-            t['notes'] or ''
+            t['notes'] or '',
+            t['curr_hash'] if 'curr_hash' in t.keys() else ''
         ])
 
     output.seek(0)

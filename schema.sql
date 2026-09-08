@@ -5,7 +5,9 @@ CREATE TABLE IF NOT EXISTS transactions (
     type TEXT NOT NULL CHECK(type IN ('income', 'expense')),
     category TEXT NOT NULL,
     date TEXT NOT NULL CHECK(date GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]'),
-    notes TEXT
+    notes TEXT,
+    prev_hash TEXT NOT NULL DEFAULT 'GENESIS_BLOCK',
+    curr_hash TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS budgets (

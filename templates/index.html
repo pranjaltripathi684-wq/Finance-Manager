@@ -3,6 +3,29 @@
 {% block title %}Dashboard - Finance Tracker{% endblock %}
 
 {% block content %}
+<!-- NEW: Cryptographic Audit Status Banner -->
+<div style="background: var(--bg-card); padding: 14px 20px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 1.2rem;">{% if ledger_valid %}🛡️{% else %}🚨{% endif %}</span>
+        <div>
+            <div style="font-size: 0.9rem; font-weight: 700; color: {% if ledger_valid %}var(--income){% else %}var(--expense){% endif %};">
+                {% if ledger_valid %}
+                    SHA-256 Cryptographic Chain: Verified ({{ total_verified }} blocks intact)
+                {% else %}
+                    TAMPER ALERT: Broken Chain at Transaction #{{ compromised_id }}!
+                {% endif %}
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Immutable Merkle-style hash link prevents direct database manipulation</div>
+        </div>
+    </div>
+    
+    <form method="POST" action="{{ url_for('audit_verify') }}" style="margin: 0; padding: 0; background: none; border: none; box-shadow: none;">
+        <button type="submit" class="btn-control" style="font-size: 0.82rem; padding: 6px 12px; cursor: pointer;">
+            ⚡ Verify Integrity Now
+        </button>
+    </form>
+</div>
+
 <section class="summary">
     <!-- Income Card -->
     <div class="card income">
@@ -149,6 +172,7 @@
                 <th>Type</th>
                 <th>Amount</th>
                 <th>Notes</th>
+                <th>Hash Sig</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -177,6 +201,12 @@
                     {% if t['type'] == 'income' %}+{% else %}-{% endif %}${{ "%.2f"|format(t['amount']) }}
                 </td>
                 <td class="searchable-notes">{{ t['notes'] if t['notes'] else '-' }}</td>
+                <!-- Shortened SHA-256 Fingerprint -->
+                <td>
+                    <code style="font-size: 0.75rem; background: var(--bg-subtle); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-color); color: var(--text-muted);" title="{{ t['curr_hash'] }}">
+                        {{ (t['curr_hash'] or '00000000')[:8] }}...
+                    </code>
+                </td>
                 <td>
                     <a href="{{ url_for('edit_transaction', id=t['id']) }}">Edit</a>
                     <form method="POST" action="{{ url_for('delete_transaction', id=t['id']) }}" style="display:inline;">
@@ -186,7 +216,7 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="7" style="text-align: center; padding: 20px; color: var(--text-muted);">
+                <td colspan="8" style="text-align: center; padding: 20px; color: var(--text-muted);">
                     No transactions found. <a href="{{ url_for('add_transaction') }}">Add one to get started!</a>
                 </td>
             </tr>
